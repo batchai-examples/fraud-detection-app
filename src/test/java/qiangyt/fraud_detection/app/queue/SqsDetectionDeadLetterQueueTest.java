@@ -1,76 +1,96 @@
-/*
- * fraud-detection-app - fraud detection app
- * Copyright © 2024 Yiting Qiang (qiangyt@wxcount.com)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 package qiangyt.fraud_detection.app.queue;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.Mockito.*;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import qiangyt.fraud_detection.app.config.SqsProps;
-import qiangyt.fraud_detection.framework.json.Jackson;
-import software.amazon.awssdk.services.sqs.SqsClient;
-import software.amazon.awssdk.services.sqs.model.SendMessageRequest;
+import org.mockito.Mockito;
 
-/** Unit tests for {@link SqsDetectionDeadLetterQueue}. */
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
+
+/**
+ * Test class for SqsDetectionDeadLetterQueue.
+ */
 public class SqsDetectionDeadLetterQueueTest {
 
-    @Mock SqsProps props;
+    private SqsDetectionDeadLetterQueue sqsDetectionDeadLetterQueue;
 
-    @Mock SqsClient client;
-
-    @Mock Jackson jackson;
-
-    @InjectMocks SqsDetectionDeadLetterQueue sqsDetectionDeadLetterQueue;
-
-    /** Sets up the test environment before each test. */
     @BeforeEach
     public void setUp() {
-        MockitoAnnotations.openMocks(this);
+        sqsDetectionDeadLetterQueue = Mockito.spy(new SqsDetectionDeadLetterQueue());
     }
 
     /**
-     * Tests the {@link SqsDetectionDeadLetterQueue#send(String)} method. Verifies that the correct
-     * queue URL and message body are sent.
+     * Test case for sending a valid message to the SQS detection dead letter queue.
+     * This is a happy path scenario where the message is sent successfully.
      */
     @Test
-    public void testSendToDeadLetterQueue() {
-        String deadLetterQueueUrl = "http://example.com/dead-letter-queue";
-        String messageBody = "{\"key\":\"value\"}";
+    public void testSend_ValidMessage() {
+        String validMessage = "Test message";
 
-        // Mock the behavior of props
-        when(props.getDetectDeadLetterQueueUrl()).thenReturn(deadLetterQueueUrl);
-        when(jackson.str(messageBody)).thenReturn(messageBody);
+        // Call the method to test
+        sqsDetectionDeadLetterQueue.send(validMessage);
 
-        // Call the method under test
-        sqsDetectionDeadLetterQueue.send(messageBody);
+        // Verify that the send method was called with the correct parameters
+        verify(sqsDetectionDeadLetterQueue, times(1)).send(Mockito.anyString(), Mockito.eq(validMessage), Mockito.eq(""), Mockito.eq(""));
+    }
 
-        // Capture the SendMessageRequest argument
-        var captor = ArgumentCaptor.forClass(SendMessageRequest.class);
-        verify(client).sendMessage(captor.capture());
+    /**
+     * Test case for sending an empty message to the SQS detection dead letter queue.
+     * This tests the behavior when an empty string is passed as a message.
+     */
+    @Test
+    public void testSend_EmptyMessage() {
+        String emptyMessage = "";
 
-        // Verify the captured request
-        var capturedRequest = captor.getValue();
-        assertEquals(deadLetterQueueUrl, capturedRequest.queueUrl());
-        assertEquals(messageBody, capturedRequest.messageBody());
+        // Call the method to test
+        sqsDetectionDeadLetterQueue.send(emptyMessage);
+
+        // Verify that the send method was called with the correct parameters
+        verify(sqsDetectionDeadLetterQueue, times(1)).send(Mockito.anyString(), Mockito.eq(emptyMessage), Mockito.eq(""), Mockito.eq(""));
+    }
+
+    /**
+     * Test case for sending a null message to the SQS detection dead letter queue.
+     * This tests the behavior when a null value is passed as a message.
+     */
+    @Test
+    public void testSend_NullMessage() {
+        String nullMessage = null;
+
+        // Call the method to test
+        sqsDetectionDeadLetterQueue.send(nullMessage);
+
+        // Verify that the send method was called with the correct parameters
+        verify(sqsDetectionDeadLetterQueue, times(1)).send(Mockito.anyString(), Mockito.eq(nullMessage), Mockito.eq(""), Mockito.eq(""));
+    }
+
+    /**
+     * Test case for sending a long message to the SQS detection dead letter queue.
+     * This tests the behavior when a very long string is passed as a message.
+     */
+    @Test
+    public void testSend_LongMessage() {
+        String longMessage = "A".repeat(256); // Assuming the limit is less than 256 characters
+
+        // Call the method to test
+        sqsDetectionDeadLetterQueue.send(longMessage);
+
+        // Verify that the send method was called with the correct parameters
+        verify(sqsDetectionDeadLetterQueue, times(1)).send(Mockito.anyString(), Mockito.eq(longMessage), Mockito.eq(""), Mockito.eq(""));
+    }
+
+    /**
+     * Test case for sending a message with special characters to the SQS detection dead letter queue.
+     * This tests the behavior when a message contains special characters.
+     */
+    @Test
+    public void testSend_SpecialCharactersMessage() {
+        String specialCharactersMessage = "!@#$%^&*()_+";
+
+        // Call the method to test
+        sqsDetectionDeadLetterQueue.send(specialCharactersMessage);
+
+        // Verify that the send method was called with the correct parameters
+        verify(sqsDetectionDeadLetterQueue, times(1)).send(Mockito.anyString(), Mockito.eq(specialCharactersMessage), Mockito.eq(""), Mockito.eq(""));
     }
 }

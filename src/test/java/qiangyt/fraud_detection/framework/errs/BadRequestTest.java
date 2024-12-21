@@ -1,99 +1,108 @@
-/*
- * fraud-detection-app - fraud detection app
- * Copyright © 2024 Yiting Qiang (qiangyt@wxcount.com)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 package qiangyt.fraud_detection.framework.errs;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
+import static org.junit.jupiter.api.Assertions.*;
 
-/** Unit tests for the {@link BadRequest} class. */
+/**
+ * Test cases for the BadRequest class.
+ */
 public class BadRequestTest {
 
-    /** Tests the BadRequest constructor with a formatted message. */
+    /**
+     * Test the constructor with error code, message format, and parameters.
+     * This is a happy path test case.
+     */
     @Test
-    public void testBadRequestWithMessageFormat() {
-        // Create BadRequest exception with formatted message
-        var ex = new BadRequest(ErrorCode.NONE, "Invalid parameter: %s", "param1");
+    public void testConstructorWithCodeAndMessageFormat() {
+        ErrorCode code = ErrorCode.INVALID_REQUEST;
+        String messageFormat = "Invalid request for user %s";
+        BadRequest badRequest = new BadRequest(code, messageFormat, "user123");
 
-        // Verify the status, code, and message
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
-        assertEquals(ErrorCode.NONE, ex.getCode());
-        assertEquals("Invalid parameter: param1", ex.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, badRequest.getStatus());
+        assertEquals(code, badRequest.getCode());
+        assertEquals("Invalid request for user user123", badRequest.getMessage());
     }
 
-    /** Tests the BadRequest constructor with a simple message. */
+    /**
+     * Test the constructor with error code and message.
+     * This is a positive test case.
+     */
     @Test
-    public void testBadRequestWithMessage() {
-        // Create BadRequest exception with simple message
-        var ex = new BadRequest(ErrorCode.NONE, "Invalid request");
+    public void testConstructorWithCodeAndMessage() {
+        ErrorCode code = ErrorCode.INVALID_REQUEST;
+        String message = "Invalid request";
 
-        // Verify the status, code, and message
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
-        assertEquals(ErrorCode.NONE, ex.getCode());
-        assertEquals("Invalid request", ex.getMessage());
+        BadRequest badRequest = new BadRequest(code, message);
+
+        assertEquals(HttpStatus.BAD_REQUEST, badRequest.getStatus());
+        assertEquals(code, badRequest.getCode());
+        assertEquals(message, badRequest.getMessage());
     }
 
-    /** Tests the BadRequest constructor with a cause and formatted message. */
+    /**
+     * Test the constructor with error code only.
+     * This is a positive test case.
+     */
     @Test
-    public void testBadRequestWithCauseAndMessageFormat() {
-        // Create a root cause exception
-        var cause = new RuntimeException("Root cause");
+    public void testConstructorWithCodeOnly() {
+        ErrorCode code = ErrorCode.INVALID_REQUEST;
 
-        // Create BadRequest exception with cause and formatted message
-        var ex = new BadRequest(ErrorCode.NONE, cause, "Invalid parameter: %s", "param1");
+        BadRequest badRequest = new BadRequest(code);
 
-        // Verify the status, code, message, and cause
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
-        assertEquals(ErrorCode.NONE, ex.getCode());
-        assertEquals("Invalid parameter: param1", ex.getMessage());
-        assertEquals(cause, ex.getCause());
+        assertEquals(HttpStatus.BAD_REQUEST, badRequest.getStatus());
+        assertEquals(code, badRequest.getCode());
+        assertNull(badRequest.getMessage());
     }
 
-    /** Tests the BadRequest constructor with a cause and simple message. */
+    /**
+     * Test the constructor with error code, cause, message format, and parameters.
+     * This is a happy path test case.
+     */
     @Test
-    public void testBadRequestWithCauseAndMessage() {
-        // Create a root cause exception
-        var cause = new RuntimeException("Root cause");
+    public void testConstructorWithCodeCauseMessageFormat() {
+        ErrorCode code = ErrorCode.INVALID_REQUEST;
+        Throwable cause = new RuntimeException("Cause of the error");
+        String messageFormat = "Error occurred for user %s";
+        BadRequest badRequest = new BadRequest(code, cause, messageFormat, "user123");
 
-        // Create BadRequest exception with cause and simple message
-        var ex = new BadRequest(ErrorCode.NONE, cause, "Invalid request");
-
-        // Verify the status, code, message, and cause
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
-        assertEquals(ErrorCode.NONE, ex.getCode());
-        assertEquals("Invalid request", ex.getMessage());
-        assertEquals(cause, ex.getCause());
+        assertEquals(HttpStatus.BAD_REQUEST, badRequest.getStatus());
+        assertEquals(code, badRequest.getCode());
+        assertEquals("Error occurred for user user123", badRequest.getMessage());
+        assertEquals(cause, badRequest.getCause());
     }
 
-    /** Tests the BadRequest constructor with only a cause. */
+    /**
+     * Test the constructor with error code, cause, and message.
+     * This is a positive test case.
+     */
     @Test
-    public void testBadRequestWithCause() {
-        // Create a root cause exception
-        var cause = new RuntimeException("Root cause");
+    public void testConstructorWithCodeCauseMessage() {
+        ErrorCode code = ErrorCode.INVALID_REQUEST;
+        Throwable cause = new RuntimeException("Cause of the error");
+        String message = "Invalid request";
 
-        // Create BadRequest exception with only cause
-        var ex = new BadRequest(ErrorCode.NONE, cause);
+        BadRequest badRequest = new BadRequest(code, cause, message);
 
-        // Verify the status, code, message, and cause
-        assertEquals(HttpStatus.BAD_REQUEST, ex.getStatus());
-        assertEquals(ErrorCode.NONE, ex.getCode());
-        assertEquals("Bad Request", ex.getMessage());
-        assertEquals(cause, ex.getCause());
+        assertEquals(HttpStatus.BAD_REQUEST, badRequest.getStatus());
+        assertEquals(code, badRequest.getCode());
+        assertEquals(message, badRequest.getMessage());
+        assertEquals(cause, badRequest.getCause());
+    }
+
+    /**
+     * Test the constructor with error code and cause.
+     * This is a corner case test case.
+     */
+    @Test
+    public void testConstructorWithCodeAndCause() {
+        ErrorCode code = ErrorCode.INVALID_REQUEST;
+        Throwable cause = new RuntimeException("Cause of the error");
+
+        BadRequest badRequest = new BadRequest(code, cause);
+
+        assertEquals(HttpStatus.BAD_REQUEST, badRequest.getStatus());
+        assertEquals(code, badRequest.getCode());
+        assertNull(badRequest.getMessage());
+        assertEquals(cause, badRequest.getCause());
     }
 }

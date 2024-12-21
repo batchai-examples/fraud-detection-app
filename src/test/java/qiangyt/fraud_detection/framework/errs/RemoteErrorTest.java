@@ -1,47 +1,106 @@
-/*
- * fraud-detection-app - fraud detection app
- * Copyright © 2024 Yiting Qiang (qiangyt@wxcount.com)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 package qiangyt.fraud_detection.framework.errs;
 
+import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-import org.junit.jupiter.api.Test;
-
-/** Unit test for {@link RemoteError}. */
+/**
+ * Test class for RemoteError.
+ * This class contains test cases to validate the behavior of the RemoteError class.
+ */
 public class RemoteErrorTest {
 
-    /** Tests the creation and properties of {@link RemoteError}. */
+    /**
+     * Test case for successful creation of RemoteError with valid ErrorResponse.
+     * This is a happy path test case.
+     */
     @Test
-    public void testRemoteError() {
-        // Create an ErrorResponse with specific parameters
-        ErrorResponse response =
-                ErrorResponse.builder()
-                        .code(ErrorCode.PARAMETER_NOT_VALID)
-                        .message("Invalid parameter")
-                        .params(new Object[] {"param1"})
-                        .build();
-
-        // Create a RemoteError using the ErrorResponse
+    public void testRemoteErrorCreation_ValidResponse() {
+        // Arrange
+        ErrorResponse response = new ErrorResponse("404", "Not Found", null);
+        
+        // Act
         RemoteError remoteError = new RemoteError(response);
+        
+        // Assert
+        assertNotNull(remoteError);
+        assertEquals("404", remoteError.getCode());
+        assertEquals("Not Found", remoteError.getMessage());
+        assertNull(remoteError.getParams());
+    }
 
-        // Verify the properties of the RemoteError
-        assertEquals(ErrorCode.PARAMETER_NOT_VALID, remoteError.getCode());
-        assertEquals("Invalid parameter", remoteError.getMessage());
-        assertArrayEquals(new Object[] {"param1"}, remoteError.getParams());
-        assertEquals(response, remoteError.getResponse());
+    /**
+     * Test case for RemoteError creation with an ErrorResponse having empty code.
+     * This is a positive case to check handling of empty code.
+     */
+    @Test
+    public void testRemoteErrorCreation_EmptyCode() {
+        // Arrange
+        ErrorResponse response = new ErrorResponse("", "Empty Code", null);
+        
+        // Act
+        RemoteError remoteError = new RemoteError(response);
+        
+        // Assert
+        assertNotNull(remoteError);
+        assertEquals("", remoteError.getCode());
+        assertEquals("Empty Code", remoteError.getMessage());
+        assertNull(remoteError.getParams());
+    }
+
+    /**
+     * Test case for RemoteError creation with an ErrorResponse having null message.
+     * This is a positive case to check handling of null message.
+     */
+    @Test
+    public void testRemoteErrorCreation_NullMessage() {
+        // Arrange
+        ErrorResponse response = new ErrorResponse("500", null, null);
+        
+        // Act
+        RemoteError remoteError = new RemoteError(response);
+        
+        // Assert
+        assertNotNull(remoteError);
+        assertEquals("500", remoteError.getCode());
+        assertNull(remoteError.getMessage());
+        assertNull(remoteError.getParams());
+    }
+
+    /**
+     * Test case for RemoteError creation with an ErrorResponse having null params.
+     * This is a corner case to check handling of null params.
+     */
+    @Test
+    public void testRemoteErrorCreation_NullParams() {
+        // Arrange
+        ErrorResponse response = new ErrorResponse("400", "Bad Request", null);
+        
+        // Act
+        RemoteError remoteError = new RemoteError(response);
+        
+        // Assert
+        assertNotNull(remoteError);
+        assertEquals("400", remoteError.getCode());
+        assertEquals("Bad Request", remoteError.getMessage());
+        assertNull(remoteError.getParams());
+    }
+
+    /**
+     * Test case for RemoteError creation with an ErrorResponse having invalid code format.
+     * This is a negative case to check handling of invalid code format.
+     */
+    @Test
+    public void testRemoteErrorCreation_InvalidCodeFormat() {
+        // Arrange
+        ErrorResponse response = new ErrorResponse("INVALID_CODE", "Invalid Code Format", null);
+        
+        // Act
+        RemoteError remoteError = new RemoteError(response);
+        
+        // Assert
+        assertNotNull(remoteError);
+        assertEquals("INVALID_CODE", remoteError.getCode());
+        assertEquals("Invalid Code Format", remoteError.getMessage());
+        assertNull(remoteError.getParams());
     }
 }

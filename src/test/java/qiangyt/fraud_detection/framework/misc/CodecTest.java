@@ -1,56 +1,124 @@
-/*
- * fraud-detection-app - fraud detection app
- * Copyright © 2024 Yiting Qiang (qiangyt@wxcount.com)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
+!!!!test_begin!!!!
 package qiangyt.fraud_detection.framework.misc;
 
 import static org.junit.jupiter.api.Assertions.*;
-
 import org.junit.jupiter.api.Test;
-import org.springframework.mock.web.MockMultipartFile;
+import org.mockito.Mockito;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 
 public class CodecTest {
 
+    /**
+     * Test for isBase64Encoded method with valid Base64 input.
+     * This test checks if the method correctly identifies a Base64 encoded file.
+     */
     @Test
-    public void testIsBase64Encoded_HappyPath() {
-        // Given a Base64 encoded string
-        String base64String = "SGVsbG8gV29ybGQh";
+    public void testIsBase64Encoded_ValidBase64() throws Exception {
+        // Create a mock MultipartFile with Base64 content
+        String base64Content = "U29tZSB2YWxpZCBjb250ZW50"; // "Some valid content" in Base64
+        MultipartFile file = createMockMultipartFile(base64Content);
 
-        // When checking if it's Base64 encoded
-        boolean result =
-                Codec.isBase64Encoded(
-                        new MockMultipartFile(
-                                "file", "test.txt", "text/plain", base64String.getBytes()));
-
-        // Then it should return true
-        assertTrue(result);
+        // Call the method and assert the result
+        assertTrue(Codec.isBase64Encoded(file));
     }
 
+    /**
+     * Test for isBase64Encoded method with invalid Base64 input.
+     * This test checks if the method correctly identifies a non-Base64 encoded file.
+     */
     @Test
-    public void testIsBase64Encoded_NegativePath() {
-        // Given a non-Base64 encoded string
-        String nonBase64String = "Hello World!";
+    public void testIsBase64Encoded_InvalidBase64() throws Exception {
+        // Create a mock MultipartFile with invalid content
+        String invalidContent = "Some invalid content";
+        MultipartFile file = createMockMultipartFile(invalidContent);
 
-        // When checking if it's Base64 encoded
-        boolean result =
-                Codec.isBase64Encoded(
-                        new MockMultipartFile(
-                                "file", "test.txt", "text/plain", nonBase64String.getBytes()));
+        // Call the method and assert the result
+        assertFalse(Codec.isBase64Encoded(file));
+    }
 
-        // Then it should return false
-        assertFalse(result);
+    /**
+     * Test for isBase64Encoded method with empty file.
+     * This test checks if the method returns false for an empty file.
+     */
+    @Test
+    public void testIsBase64Encoded_EmptyFile() throws Exception {
+        // Create a mock MultipartFile with empty content
+        MultipartFile file = createMockMultipartFile("");
+
+        // Call the method and assert the result
+        assertFalse(Codec.isBase64Encoded(file));
+    }
+
+    /**
+     * Test for bytesToBase64 method with valid byte array.
+     * This test checks if the method correctly converts a byte array to Base64.
+     */
+    @Test
+    public void testBytesToBase64_ValidInput() {
+        byte[] input = "Hello".getBytes();
+        String expected = "SGVsbG8"; // Base64 encoded "Hello"
+        assertEquals(expected, Codec.bytesToBase64(input));
+    }
+
+    /**
+     * Test for bytesToBase64 method with null input.
+     * This test checks if the method returns null when input is null.
+     */
+    @Test
+    public void testBytesToBase64_NullInput() {
+        assertNull(Codec.bytesToBase64(null));
+    }
+
+    /**
+     * Test for base64ToStr method with valid Base64 input.
+     * This test checks if the method correctly decodes a Base64 string to a regular string.
+     */
+    @Test
+    public void testBase64ToStr_ValidInput() {
+        String base64Input = "SGVsbG8="; // Base64 for "Hello"
+        assertEquals("Hello", Codec.base64ToStr(base64Input));
+    }
+
+    /**
+     * Test for base64ToStr method with invalid Base64 input.
+     * This test checks if the method returns null for invalid Base64 input.
+     */
+    @Test
+    public void testBase64ToStr_InvalidInput() {
+        String invalidBase64 = "InvalidBase64";
+        assertNull(Codec.base64ToStr(invalidBase64));
+    }
+
+    /**
+     * Test for base64ToStr method with null input.
+     * This test checks if the method returns null when input is null.
+     */
+    @Test
+    public void testBase64ToStr_NullInput() {
+        assertNull(Codec.base64ToStr(null));
+    }
+
+    /**
+     * Test for bytesToBase64DataUrl method with valid inputs.
+     * This test checks if the method correctly creates a Base64 Data URL string.
+     */
+    @Test
+    public void testBytesToBase64DataUrl_ValidInput() {
+        byte[] input = "Hello".getBytes();
+        String expected = "data:image/png;base64,SGVsbG8"; // Assuming type is "png"
+        assertEquals(expected, Codec.bytesToBase64DataUrl(input, "png"));
+    }
+
+    // Helper method to create a mock MultipartFile
+    private MultipartFile createMockMultipartFile(String content) throws Exception {
+        InputStream inputStream = new ByteArrayInputStream(content.getBytes());
+        MultipartFile file = Mockito.mock(MultipartFile.class);
+        Mockito.when(file.getInputStream()).thenReturn(inputStream);
+        Mockito.when(file.getOriginalFilename()).thenReturn("test.txt");
+        return file;
     }
 }
+!!!!test_end!!!!

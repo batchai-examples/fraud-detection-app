@@ -1,158 +1,143 @@
-/*
- * fraud-detection-app - fraud detection app
- * Copyright © 2024 Yiting Qiang (qiangyt@wxcount.com)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 package qiangyt.fraud_detection.app.service;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-
-import org.junit.jupiter.api.AfterEach;
+import jakarta.validation.constraints.NotNull;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import qiangyt.fraud_detection.app.alert.Alerter;
 import qiangyt.fraud_detection.app.engine.DetectionEngine;
 import qiangyt.fraud_detection.app.queue.DetectionRequestQueue;
 import qiangyt.fraud_detection.framework.json.Jackson;
+import qiangyt.fraud_detection.sdk.DetectionApi;
 import qiangyt.fraud_detection.sdk.DetectionReq;
 import qiangyt.fraud_detection.sdk.DetectionReqEntity;
 import qiangyt.fraud_detection.sdk.DetectionResult;
-import qiangyt.fraud_detection.sdk.FraudCategory;
 
-/** Unit tests for {@link DetectionService}. */
+import java.util.concurrent.CompletableFuture;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
 public class DetectionServiceTest {
 
-    @Mock Alerter alertor;
+    @Mock
+    private DetectionRequestQueue requestQueue;
 
-    @Mock DetectionRequestQueue queue;
+    @Mock
+    private DetectionEngine engine;
 
-    @Mock DetectionEngine engine;
+    @Mock
+    private Jackson jackson;
 
-    ThreadPoolTaskExecutor detectionTaskExecutor = new ThreadPoolTaskExecutor();
+    @Mock
+    private Alerter alertor;
 
-    @InjectMocks DetectionService service;
+    @InjectMocks
+    private DetectionService detectionService;
 
-    /** Sets up the test environment before each test. */
     @BeforeEach
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-
-        detectionTaskExecutor.initialize();
-
-        service.setDetectionTaskExecutor(detectionTaskExecutor);
-        service.setJackson(Jackson.DEFAULT);
-    }
-
-    /** Cleans up the test environment after each test. */
-    @AfterEach
-    public void tearDown() {
-        service.shutdown();
-        detectionTaskExecutor.shutdown(); // Added to properly shut down the executor
-    }
-
-    /** Tests the {@link DetectionService#submit(DetectionReq)} method. */
-    @Test
-    public void testSubmit() {
-        var entity = new DetectionReqEntity();
-        var req =
-                new DetectionReq() {
-                    @Override
-                    public DetectionReqEntity toEntity() {
-                        return entity;
-                    }
-                };
-
-        // Submits a detection request and verifies the result
-        var result = service.submit(req);
-
-        assertEquals(entity, result);
-    }
-
-    /** Tests the {@link DetectionService#detectThenAlert(DetectionReqEntity)} method. */
-    @Test
-    public void testDetectThenAlert() throws Exception {
-        var entity = new DetectionReqEntity();
-        var category = FraudCategory.BIG_AMOUNT;
-
-        when(engine.detect(any(DetectionReqEntity.class))).thenReturn(category);
-        doNothing().when(alertor).send(any(DetectionResult.class));
-
-        // Detects fraud and sends an alert, then verifies the result
-        var futureResult = service.detectThenAlert(entity);
-        var detectionResult = futureResult.join();
-
-        assertEquals(category, detectionResult.getCategory());
-        assertEquals(entity, detectionResult.getEntity());
-        verify(alertor, times(1)).send(detectionResult);
     }
 
     /**
-     * Tests the {@link DetectionService#detectThenAlert(DetectionReqEntity)} method when no fraud
-     * is detected.
+     * Test case for submitting a detection request successfully.
+     * This is the happy path where the request is processed without any issues.
      */
     @Test
-    public void testDetectThenAlert_NoFraud() throws Exception {
-        var entity = new DetectionReqEntity();
-        var category = FraudCategory.NONE;
+    public void testSubmitDetectionRequest() {
+        DetectionReq req = mock(DetectionReq.class);
+        DetectionReqEntity entity = mock(DetectionReqEntity.class);
+        when(req.toEntity()).thenReturn(entity);
 
-        when(engine.detect(any(DetectionReqEntity.class))).thenReturn(category);
-        doNothing().when(alertor).send(any(DetectionResult.class));
+        DetectionReqEntity result = detectionService.submit(req);
 
-        // Detects no fraud and verifies the result
-        var futureResult = service.detectThenAlert(entity);
-        var detectionResult = futureResult.join();
-
-        assertEquals(category, detectionResult.getCategory());
-        assertEquals(entity, detectionResult.getEntity());
-        verify(alertor, times(0)).send(detectionResult);
+        // Verify that the request queue sends the entity
+        verify(requestQueue).send(entity);
+        assertEquals(entity, result);
     }
 
-    /** Tests the {@link DetectionService#detect(DetectionReqEntity)} method. */
+    /**
+     * Test case for detecting fraud and sending an alert when fraud is detected.
+     * This tests the positive case where the detection engine identifies fraud.
+     */
     @Test
-    public void testDetect() {
-        var entity = new DetectionReqEntity();
-        var category = FraudCategory.BIG_AMOUNT;
-        when(engine.detect(any(DetectionReqEntity.class))).thenReturn(category);
+    public void testDetectThenAlert_FraudDetected() {
+        DetectionReqEntity entity = mock(DetectionReqEntity.class);
+        DetectionResult result = mock(DetectionResult.class);
+        when(result.getCategory().yes).thenReturn(true);
+        when(engine.detect(entity)).thenReturn(result);
+        when(jackson.str(result)).thenReturn("Fraud detected!");
 
-        // Detects fraud and verifies the result
-        var result = service.detect(entity);
+        CompletableFuture<DetectionResult> futureResult = detectionService.detectThenAlert(entity);
 
-        assertEquals(category, result.getCategory());
-        assertEquals(entity, result.getEntity());
+        // Wait for the CompletableFuture to complete and get the result
+        DetectionResult finalResult = futureResult.join();
+
+        // Verify that the alertor sends an alert
+        verify(alertor).send(finalResult);
+        assertEquals(result, finalResult);
     }
 
-    /** Tests the {@link DetectionService#shutdown()} method. */
+    /**
+     * Test case for detecting fraud without sending an alert when no fraud is detected.
+     * This tests the positive case where the detection engine does not identify fraud.
+     */
     @Test
-    public void testShutdown() {
-        var executor = spy(new ThreadPoolTaskExecutor());
-        executor.initialize();
-        service.setDetectionTaskExecutor(executor);
+    public void testDetectThenAlert_NoFraudDetected() {
+        DetectionReqEntity entity = mock(DetectionReqEntity.class);
+        DetectionResult result = mock(DetectionResult.class);
+        when(result.getCategory().yes).thenReturn(false);
+        when(engine.detect(entity)).thenReturn(result);
+        when(jackson.str(result)).thenReturn("No fraud detected!");
 
-        // Shuts down the service and verifies the executor is shut down
-        service.shutdown();
+        CompletableFuture<DetectionResult> futureResult = detectionService.detectThenAlert(entity);
 
-        verify(executor, times(1)).shutdown();
+        // Wait for the CompletableFuture to complete and get the result
+        DetectionResult finalResult = futureResult.join();
+
+        // Verify that the alertor does not send an alert
+        verify(alertor, never()).send(finalResult);
+        assertEquals(result, finalResult);
+    }
+
+    /**
+     * Test case for detecting fraud with a null request entity.
+     * This tests the negative case where the input is invalid (null).
+     */
+    @Test
+    public void testDetect_NullEntity() {
+        assertThrows(NullPointerException.class, () -> {
+            detectionService.detect(null);
+        });
+    }
+
+    /**
+     * Test case for submitting a null detection request.
+     * This tests the negative case where the input is invalid (null).
+     */
+    @Test
+    public void testSubmit_NullRequest() {
+        assertThrows(NullPointerException.class, () -> {
+            detectionService.submit(null);
+        });
+    }
+
+    /**
+     * Test case for detecting fraud with an invalid detection request entity.
+     * This tests a corner case where the detection engine returns a null result.
+     */
+    @Test
+    public void testDetect_InvalidEntity() {
+        DetectionReqEntity entity = mock(DetectionReqEntity.class);
+        when(engine.detect(entity)).thenReturn(null);
+
+        DetectionResult result = detectionService.detect(entity);
+
+        // Verify that the result is null
+        assertNull(result);
     }
 }

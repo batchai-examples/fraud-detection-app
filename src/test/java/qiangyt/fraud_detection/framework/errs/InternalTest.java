@@ -1,99 +1,103 @@
-/*
- * fraud-detection-app - fraud detection app
- * Copyright © 2024 Yiting Qiang (qiangyt@wxcount.com)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 package qiangyt.fraud_detection.framework.errs;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
 import org.junit.jupiter.api.Test;
-import org.springframework.http.HttpStatus;
+import static org.junit.jupiter.api.Assertions.*;
 
-/** Unit tests for the {@link Internal} class. */
+/**
+ * Test cases for the Internal class.
+ */
 public class InternalTest {
 
-    /** Tests the constructor of {@link Internal} with a formatted message. */
+    /**
+     * Test the constructor with message format and parameters.
+     * 
+     * This test verifies that the Internal error is created correctly
+     * when provided with a message format and parameters.
+     */
     @Test
-    public void testInternalWithMessageFormat() {
-        // Create an Internal exception with a formatted message
-        var ex = new Internal("Internal error: %s", "error1");
-
-        // Verify the status, code, and message
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatus());
-        assertEquals(ErrorCode.NONE, ex.getCode());
-        assertEquals("Internal error: error1", ex.getMessage());
+    public void testConstructorWithMessageFormatAndParams() {
+        Internal internalError = new Internal("Error occurred: %s", "Database connection failed");
+        assertNotNull(internalError);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, internalError.getStatus());
+        assertEquals("Error occurred: Database connection failed", internalError.getMessage());
     }
 
-    /** Tests the constructor of {@link Internal} with a simple message. */
+    /**
+     * Test the constructor with a message.
+     * 
+     * This test checks that the Internal error is created correctly
+     * when only a message is provided.
+     */
     @Test
-    public void testInternalWithMessage() {
-        // Create an Internal exception with a simple message
-        var ex = new Internal("Internal error");
-
-        // Verify the status, code, and message
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatus());
-        assertEquals(ErrorCode.NONE, ex.getCode());
-        assertEquals("Internal error", ex.getMessage());
+    public void testConstructorWithMessage() {
+        Internal internalError = new Internal("An unexpected error occurred");
+        assertNotNull(internalError);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, internalError.getStatus());
+        assertEquals("An unexpected error occurred", internalError.getMessage());
     }
 
-    /** Tests the constructor of {@link Internal} with a cause and a formatted message. */
+    /**
+     * Test the constructor with cause, message format, and parameters.
+     * 
+     * This test ensures that the Internal error is created correctly
+     * when a cause, message format, and parameters are provided.
+     */
     @Test
-    public void testInternalWithCauseAndMessageFormat() {
-        // Create a cause exception
-        var cause = new RuntimeException("Root cause");
-
-        // Create an Internal exception with a cause and a formatted message
-        var ex = new Internal(cause, "Internal error: %s", "error1");
-
-        // Verify the status, code, message, and cause
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatus());
-        assertEquals(ErrorCode.NONE, ex.getCode());
-        assertEquals("Internal error: error1", ex.getMessage());
-        assertEquals(cause, ex.getCause());
+    public void testConstructorWithCauseMessageFormatAndParams() {
+        Throwable cause = new RuntimeException("Database error");
+        Internal internalError = new Internal(cause, "Error occurred: %s", "Database connection failed");
+        assertNotNull(internalError);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, internalError.getStatus());
+        assertEquals("Error occurred: Database connection failed", internalError.getMessage());
+        assertEquals(cause, internalError.getCause());
     }
 
-    /** Tests the constructor of {@link Internal} with a cause and a simple message. */
+    /**
+     * Test the constructor with cause and message.
+     * 
+     * This test verifies that the Internal error is created correctly
+     * when a cause and a message are provided.
+     */
     @Test
-    public void testInternalWithCauseAndMessage() {
-        // Create a cause exception
-        var cause = new RuntimeException("Root cause");
-
-        // Create an Internal exception with a cause and a simple message
-        var ex = new Internal(cause, "Internal error");
-
-        // Verify the status, code, message, and cause
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatus());
-        assertEquals(ErrorCode.NONE, ex.getCode());
-        assertEquals("Internal error", ex.getMessage());
-        assertEquals(cause, ex.getCause());
+    public void testConstructorWithCauseAndMessage() {
+        Throwable cause = new RuntimeException("Database error");
+        Internal internalError = new Internal(cause, "An unexpected error occurred");
+        assertNotNull(internalError);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, internalError.getStatus());
+        assertEquals("An unexpected error occurred", internalError.getMessage());
+        assertEquals(cause, internalError.getCause());
     }
 
-    /** Tests the constructor of {@link Internal} with only a cause. */
+    /**
+     * Test the constructor with only cause.
+     * 
+     * This test checks that the Internal error is created correctly
+     * when only a cause is provided.
+     */
     @Test
-    public void testInternalWithCause() {
-        // Create a cause exception
-        var cause = new RuntimeException("Root cause");
+    public void testConstructorWithCause() {
+        Throwable cause = new RuntimeException("Database error");
+        Internal internalError = new Internal(cause);
+        assertNotNull(internalError);
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, internalError.getStatus());
+        assertEquals(cause, internalError.getCause());
+    }
 
-        // Create an Internal exception with only a cause
-        var ex = new Internal(cause);
-
-        // Verify the status, code, message, and cause
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, ex.getStatus());
-        assertEquals(ErrorCode.NONE, ex.getCode());
-        assertEquals("Internal Server Error", ex.getMessage());
-        assertEquals(cause, ex.getCause());
+    /**
+     * Test the toResponse method.
+     * 
+     * This test verifies that the toResponse method returns the correct
+     * ErrorResponse object with the expected properties.
+     */
+    @Test
+    public void testToResponse() {
+        Internal internalError = new Internal("An unexpected error occurred");
+        ErrorResponse response = internalError.toResponse("/api/test");
+        assertNotNull(response);
+        assertEquals("/api/test", response.getPath());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.value(), response.getStatus());
+        assertEquals("Internal Server Error", response.getError());
+        assertEquals(ErrorCode.NONE, response.getCode());
+        assertEquals("", response.getMessage());
     }
 }

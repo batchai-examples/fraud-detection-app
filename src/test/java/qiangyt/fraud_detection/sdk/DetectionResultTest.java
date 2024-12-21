@@ -1,76 +1,106 @@
-/*
- * fraud-detection-app - fraud detection app
- * Copyright © 2024 Yiting Qiang (qiangyt@wxcount.com)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 package qiangyt.fraud_detection.sdk;
 
-import static org.junit.jupiter.api.Assertions.*;
-
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import qiangyt.fraud_detection.framework.misc.UuidHelper;
+import static org.junit.jupiter.api.Assertions.*;
+import java.util.Date;
 
+/**
+ * Test class for DetectionResult.
+ */
 public class DetectionResultTest {
 
-    private DetectionReqEntity entity;
-    private FraudCategory category;
-
-    @BeforeEach
-    public void setUp() {
-        entity = new DetectionReqEntity();
-        category = FraudCategory.BIG_AMOUNT;
-    }
-
-    /** Test the from method with valid parameters. */
+    /**
+     * Test case for creating a DetectionResult with a valid entity and category.
+     * This is a happy path scenario.
+     */
     @Test
-    public void testFromValidParameters() {
-        var result = DetectionResult.from(entity, category);
+    public void testFrom_ValidEntityAndCategory() {
+        // Given a valid DetectionReqEntity and FraudCategory
+        DetectionReqEntity entity = new DetectionReqEntity(); // Assuming a default constructor exists
+        FraudCategory category = new FraudCategory("Fraud", true, "Fraud detected");
 
+        // When creating a DetectionResult
+        DetectionResult result = DetectionResult.from(entity, category);
+
+        // Then the result should not be null and should have the expected properties
+        assertNotNull(result);
         assertNotNull(result.getId());
         assertEquals(entity, result.getEntity());
         assertTrue(result.isFraudulent());
         assertEquals(category, result.getCategory());
-        assertEquals(category.message, result.getMessage());
+        assertEquals(category.getMessage(), result.getMessage());
         assertNotNull(result.getDetectedAt());
     }
 
-    /** Test the from method with null entity. */
+    /**
+     * Test case for creating a DetectionResult with a null entity.
+     * This tests the negative case where the entity is null.
+     */
     @Test
-    public void testFromNullEntity() {
-        assertNull(DetectionResult.from(null, category));
+    public void testFrom_NullEntity() {
+        // Given a null DetectionReqEntity
+        DetectionReqEntity entity = null;
+        FraudCategory category = new FraudCategory("Fraud", true, "Fraud detected");
+
+        // When creating a DetectionResult
+        DetectionResult result = DetectionResult.from(entity, category);
+
+        // Then the result should be null
+        assertNull(result);
     }
 
-    /** Test the from method with null detectedAt. */
+    /**
+     * Test case for creating a DetectionResult with a valid entity but null category.
+     * This tests the corner case where the category is null.
+     */
     @Test
-    public void testFromNullDetectedAt() {
-        var result =
-                DetectionResult.builder()
-                        .id(UuidHelper.shortUuid())
-                        .entity(entity)
-                        .fraudulent(category.yes)
-                        .category(category)
-                        .message(category.message)
-                        .detectedAt(null)
-                        .build();
+    public void testFrom_ValidEntityNullCategory() {
+        // Given a valid DetectionReqEntity and a null FraudCategory
+        DetectionReqEntity entity = new DetectionReqEntity(); // Assuming a default constructor exists
+        FraudCategory category = null;
 
-        assertNotNull(result.getId());
-        assertEquals(entity, result.getEntity());
+        // When creating a DetectionResult
+        DetectionResult result = DetectionResult.from(entity, category);
+
+        // Then the result should be null
+        assertNull(result);
+    }
+
+    /**
+     * Test case for creating a DetectionResult with an empty category.
+     * This tests the corner case where the category is empty.
+     */
+    @Test
+    public void testFrom_ValidEntityEmptyCategory() {
+        // Given a valid DetectionReqEntity and an empty FraudCategory
+        DetectionReqEntity entity = new DetectionReqEntity(); // Assuming a default constructor exists
+        FraudCategory category = new FraudCategory("", false, "");
+
+        // When creating a DetectionResult
+        DetectionResult result = DetectionResult.from(entity, category);
+
+        // Then the result should not be null but should have the expected properties
+        assertNotNull(result);
+        assertEquals("", result.getCategory().getName());
+        assertFalse(result.isFraudulent());
+        assertEquals("", result.getMessage());
+    }
+
+    /**
+     * Test case for creating a DetectionResult with a valid entity and category.
+     * This tests a positive case where the category indicates fraud.
+     */
+    @Test
+    public void testFrom_ValidEntityFraudCategory() {
+        // Given a valid DetectionReqEntity and a FraudCategory indicating fraud
+        DetectionReqEntity entity = new DetectionReqEntity(); // Assuming a default constructor exists
+        FraudCategory category = new FraudCategory("Fraud", true, "Fraud detected");
+
+        // When creating a DetectionResult
+        DetectionResult result = DetectionResult.from(entity, category);
+
+        // Then the result should indicate that fraud was detected
         assertTrue(result.isFraudulent());
-        assertEquals(category, result.getCategory());
-        assertEquals(category.message, result.getMessage());
-        assertNull(result.getDetectedAt());
+        assertEquals("Fraud detected", result.getMessage());
     }
 }

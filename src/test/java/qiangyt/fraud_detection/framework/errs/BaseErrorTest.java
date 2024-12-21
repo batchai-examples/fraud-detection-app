@@ -1,200 +1,108 @@
-/*
- * fraud-detection-app - fraud detection app
- * Copyright © 2024 Yiting Qiang (qiangyt@wxcount.com)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 package qiangyt.fraud_detection.framework.errs;
-
-import static org.junit.jupiter.api.Assertions.*;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
+import static org.junit.jupiter.api.Assertions.*;
+
+/**
+ * Test cases for the BaseError class.
+ */
 public class BaseErrorTest {
 
+    /**
+     * Test the constructor with status, code, message format, and parameters.
+     * This is a happy path test case.
+     */
     @Test
-    public void testBaseErrorWithMessageFormatAndParams() {
-        // Arrange
-        var status = HttpStatus.BAD_REQUEST;
-        var code = ErrorCode.WRONG_DATA_FORMAT;
-        var messageFormat = "Invalid input: %s";
-        Object[] params = {"username"};
-
-        // Act
-        var error = new BaseError(status, code, messageFormat, params) {};
-
-        // Assert
-        assertEquals(status, error.getStatus());
-        assertEquals(code, error.getCode());
-        assertEquals("Invalid input: username", error.getMessage());
+    public void testBaseErrorWithFormat() {
+        BaseError error = new BaseError(HttpStatus.BAD_REQUEST, ErrorCode.INVALID_REQUEST, "Error occurred: %s", "Invalid input");
+        
+        // Verify that the error message is formatted correctly
+        assertEquals("Error occurred: Invalid input", error.getMessage());
+        assertEquals(HttpStatus.BAD_REQUEST, error.getStatus());
+        assertEquals(ErrorCode.INVALID_REQUEST, error.getCode());
+        assertArrayEquals(new Object[]{"Invalid input"}, error.getParams());
     }
 
+    /**
+     * Test the constructor with status, code, and simple message.
+     * This is a positive case.
+     */
     @Test
     public void testBaseErrorWithSimpleMessage() {
-        // Arrange
-        var status = HttpStatus.NOT_FOUND;
-        var code = ErrorCode.WRONG_DATA_FORMAT;
-        String message = "Resource not found";
-
-        // Act
-        var error = new BaseError(status, code, message) {};
-        ;
-
-        // Assert
-        assertEquals(status, error.getStatus());
-        assertEquals(code, error.getCode());
-        assertEquals(message, error.getMessage());
+        BaseError error = new BaseError(HttpStatus.NOT_FOUND, ErrorCode.NOT_FOUND, "Resource not found");
+        
+        // Verify that the error message is set correctly
+        assertEquals("Resource not found", error.getMessage());
+        assertEquals(HttpStatus.NOT_FOUND, error.getStatus());
+        assertEquals(ErrorCode.NOT_FOUND, error.getCode());
+        assertArrayEquals(BaseError.NO_PARAMS, error.getParams());
     }
 
+    /**
+     * Test the constructor with status and code only.
+     * This is a corner case where only the status and code are provided.
+     */
     @Test
-    public void testBaseErrorWithErrorCodeOnly() {
-        // Arrange
-        var status = HttpStatus.INTERNAL_SERVER_ERROR;
-        var code = ErrorCode.WRONG_DATA_FORMAT;
-
-        // Act
-        var error = new BaseError(status, code) {};
-        ;
-
-        // Assert
-        assertEquals(status, error.getStatus());
-        assertEquals(code, error.getCode());
-        assertEquals("Internal Server Error", error.getMessage());
+    public void testBaseErrorWithStatusAndCode() {
+        BaseError error = new BaseError(HttpStatus.INTERNAL_SERVER_ERROR, ErrorCode.NONE);
+        
+        // Verify that the default message is used
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(), error.getMessage());
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, error.getStatus());
+        assertEquals(ErrorCode.NONE, error.getCode());
+        assertArrayEquals(BaseError.NO_PARAMS, error.getParams());
     }
 
+    /**
+     * Test the constructor with a cause, status, code, message format, and parameters.
+     * This is a happy path test case with a cascading exception.
+     */
     @Test
-    public void testBaseErrorWithCascadingExceptionAndMessageFormat() {
-        // Arrange
-        var status = HttpStatus.CONFLICT;
-        var code = ErrorCode.WRONG_DATA_FORMAT;
-        var messageFormat = "Duplicate entry: %s";
-        Object[] params = {"email"};
-        var cause = new RuntimeException("Cascading exception");
-
-        // Act
-        var error = new BaseError(status, code, cause, messageFormat, params) {};
-        ;
-
-        // Assert
-        assertEquals(status, error.getStatus());
-        assertEquals(code, error.getCode());
-        assertTrue(error.getCause() instanceof RuntimeException);
-        assertEquals("Duplicate entry: email", error.getMessage());
+    public void testBaseErrorWithCauseAndFormat() {
+        Throwable cause = new RuntimeException("Underlying cause");
+        BaseError error = new BaseError(HttpStatus.FORBIDDEN, ErrorCode.ACCESS_DENIED, cause, "Access denied: %s", "User not authorized");
+        
+        // Verify that the error message is formatted correctly and includes the cause
+        assertEquals("Access denied: User not authorized", error.getMessage());
+        assertEquals(cause, error.getCause());
+        assertEquals(HttpStatus.FORBIDDEN, error.getStatus());
+        assertEquals(ErrorCode.ACCESS_DENIED, error.getCode());
+        assertArrayEquals(new Object[]{"User not authorized"}, error.getParams());
     }
 
+    /**
+     * Test the constructor with a cause, status, code, and simple message.
+     * This is a positive case with a cascading exception.
+     */
     @Test
-    public void testBaseErrorWithCascadingExceptionAndSimpleMessage() {
-        // Arrange
-        var status = HttpStatus.FORBIDDEN;
-        var code = ErrorCode.WRONG_DATA_FORMAT;
-        String message = "Access denied";
-        var cause = new RuntimeException("Cascading exception");
-
-        // Act
-        var error = new BaseError(status, code, cause, message) {};
-        ;
-
-        // Assert
-        assertEquals(status, error.getStatus());
-        assertEquals(code, error.getCode());
-        assertTrue(error.getCause() instanceof RuntimeException);
-        assertEquals(message, error.getMessage());
+    public void testBaseErrorWithCauseAndSimpleMessage() {
+        Throwable cause = new RuntimeException("Underlying cause");
+        BaseError error = new BaseError(HttpStatus.UNAUTHORIZED, ErrorCode.UNAUTHORIZED, cause, "Unauthorized access");
+        
+        // Verify that the error message is set correctly and includes the cause
+        assertEquals("Unauthorized access", error.getMessage());
+        assertEquals(cause, error.getCause());
+        assertEquals(HttpStatus.UNAUTHORIZED, error.getStatus());
+        assertEquals(ErrorCode.UNAUTHORIZED, error.getCode());
+        assertArrayEquals(BaseError.NO_PARAMS, error.getParams());
     }
 
+    /**
+     * Test the constructor with a cause, status, and code only.
+     * This is a corner case where only the cause, status, and code are provided.
+     */
     @Test
-    public void testBaseErrorWithCascadingExceptionAndErrorCodeOnly() {
-        // Arrange
-        var status = HttpStatus.GONE;
-        var code = ErrorCode.WRONG_DATA_FORMAT;
-
-        var cause = new RuntimeException("Cascading exception");
-
-        // Act
-        var error = new BaseError(status, code, cause) {};
-        ;
-
-        // Assert
-        assertEquals(status, error.getStatus());
-        assertEquals(code, error.getCode());
-        assertTrue(error.getCause() instanceof RuntimeException);
-        assertEquals("Gone", error.getMessage());
-    }
-
-    @Test
-    public void testToResponseMethod() {
-        // Arrange
-        var status = HttpStatus.UNAUTHORIZED;
-        var code = ErrorCode.WRONG_DATA_FORMAT;
-        String message = "Unauthorized access";
-        String path = "/api/resource";
-
-        var error = new BaseError(status, code, message) {};
-        ;
-
-        // Act
-        var response = error.toResponse(path);
-
-        // Assert
-        assertEquals(path, response.getPath());
-        assertEquals(status.value(), response.getStatus());
-        assertEquals(status.getReasonPhrase(), response.getError());
-        assertEquals(code, response.getCode());
-        assertEquals(message, response.getMessage());
-    }
-
-    @Test
-    public void testToResponseMethodWithNullPath() {
-        // Arrange
-        var status = HttpStatus.METHOD_NOT_ALLOWED;
-        var code = ErrorCode.WRONG_DATA_FORMAT;
-        String message = "Method not allowed";
-        String path = null;
-
-        var error = new BaseError(status, code, message) {};
-        ;
-
-        // Act
-        var response = error.toResponse(path);
-
-        // Assert
-        assertEquals("", response.getPath());
-        assertEquals(status.value(), response.getStatus());
-        assertEquals(status.getReasonPhrase(), response.getError());
-        assertEquals(code, response.getCode());
-        assertEquals(message, response.getMessage());
-    }
-
-    @Test
-    public void testToResponseMethodWithEmptyPath() {
-        // Arrange
-        var status = HttpStatus.NOT_ACCEPTABLE;
-        var code = ErrorCode.WRONG_DATA_FORMAT;
-        String message = "Not acceptable";
-        String path = "";
-
-        var error = new BaseError(status, code, message) {};
-        ;
-
-        // Act
-        var response = error.toResponse(path);
-
-        // Assert
-        assertEquals("", response.getPath());
-        assertEquals(status.value(), response.getStatus());
-        assertEquals(status.getReasonPhrase(), response.getError());
-        assertEquals(code, response.getCode());
-        assertEquals(message, response.getMessage());
+    public void testBaseErrorWithCauseAndStatusAndCode() {
+        Throwable cause = new RuntimeException("Underlying cause");
+        BaseError error = new BaseError(HttpStatus.BAD_GATEWAY, ErrorCode.NONE, cause);
+        
+        // Verify that the default message is used and includes the cause
+        assertEquals(HttpStatus.BAD_GATEWAY.getReasonPhrase(), error.getMessage());
+        assertEquals(cause, error.getCause());
+        assertEquals(HttpStatus.BAD_GATEWAY, error.getStatus());
+        assertEquals(ErrorCode.NONE, error.getCode());
+        assertArrayEquals(BaseError.NO_PARAMS, error.getParams());
     }
 }

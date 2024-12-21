@@ -1,49 +1,112 @@
-/*
- * fraud-detection-app - fraud detection app
- * Copyright © 2024 Yiting Qiang (qiangyt@wxcount.com)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 package qiangyt.fraud_detection.sdk;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-
+import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.*;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
-import org.junit.jupiter.api.Test;
+import jakarta.validation.ValidatorFactory;
 
-/** Unit tests for the {@link DetectionReq} class. */
-class DetectionReqTest {
+/**
+ * Unit tests for the DetectionReq class.
+ */
+public class DetectionReqTest {
 
-    static final Validator v = Validation.buildDefaultValidatorFactory().getValidator();
+    private final Validator validator;
 
-    /** Tests that a valid {@link DetectionReq} instance passes validation. */
-    @Test
-    void testValidDetectionReq() {
-        var req = DetectionReq.builder().accountId("12345").amount(100).memo("Test memo").build();
-
-        var violations = v.validate(req);
-        assertTrue(violations.isEmpty(), "There should be no constraint violations");
+    public DetectionReqTest() {
+        ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
+        validator = factory.getValidator();
     }
 
-    /** Tests that an invalid {@link DetectionReq} instance fails validation. */
+    /**
+     * Test case for a valid DetectionReq object.
+     * This is a happy path test where all required fields are valid.
+     */
     @Test
-    void testInvalidDetectionReq() {
-        var req = DetectionReq.builder().accountId("").memo("Test memo").build();
+    public void testValidDetectionReq() {
+        DetectionReq detectionReq = new DetectionReq();
+        detectionReq.setAccountId("validAccountId");
+        detectionReq.setAmount(100);
+        detectionReq.setMemo("Test memo");
 
-        var violations = v.validate(req);
-        assertFalse(violations.isEmpty(), "There should be constraint violations");
+        // Validate the detectionReq object
+        var violations = validator.validate(detectionReq);
+        assertTrue(violations.isEmpty(), "Expected no validation violations for a valid DetectionReq");
+    }
+
+    /**
+     * Test case for missing accountId.
+     * This is a negative case where accountId is blank.
+     */
+    @Test
+    public void testMissingAccountId() {
+        DetectionReq detectionReq = new DetectionReq();
+        detectionReq.setAccountId(""); // Invalid accountId
+        detectionReq.setAmount(100);
+
+        // Validate the detectionReq object
+        var violations = validator.validate(detectionReq);
+        assertFalse(violations.isEmpty(), "Expected validation violations for missing accountId");
+    }
+
+    /**
+     * Test case for missing amount.
+     * This is a negative case where amount is not set.
+     */
+    @Test
+    public void testMissingAmount() {
+        DetectionReq detectionReq = new DetectionReq();
+        detectionReq.setAccountId("validAccountId");
+        detectionReq.setAmount(0); // Invalid amount
+
+        // Validate the detectionReq object
+        var violations = validator.validate(detectionReq);
+        assertFalse(violations.isEmpty(), "Expected validation violations for missing amount");
+    }
+
+    /**
+     * Test case for valid DetectionReq with no memo.
+     * This is a positive case where memo is optional.
+     */
+    @Test
+    public void testValidDetectionReqNoMemo() {
+        DetectionReq detectionReq = new DetectionReq();
+        detectionReq.setAccountId("validAccountId");
+        detectionReq.setAmount(100);
+        detectionReq.setMemo(null); // Memo is optional
+
+        // Validate the detectionReq object
+        var violations = validator.validate(detectionReq);
+        assertTrue(violations.isEmpty(), "Expected no validation violations for valid DetectionReq with no memo");
+    }
+
+    /**
+     * Test case for negative amount.
+     * This is a corner case where amount is negative.
+     */
+    @Test
+    public void testNegativeAmount() {
+        DetectionReq detectionReq = new DetectionReq();
+        detectionReq.setAccountId("validAccountId");
+        detectionReq.setAmount(-50); // Invalid amount
+
+        // Validate the detectionReq object
+        var violations = validator.validate(detectionReq);
+        assertFalse(violations.isEmpty(), "Expected validation violations for negative amount");
+    }
+
+    /**
+     * Test case for valid DetectionReq with large amount.
+     * This is a positive case where amount is a large positive integer.
+     */
+    @Test
+    public void testLargeAmount() {
+        DetectionReq detectionReq = new DetectionReq();
+        detectionReq.setAccountId("validAccountId");
+        detectionReq.setAmount(Integer.MAX_VALUE); // Valid large amount
+
+        // Validate the detectionReq object
+        var violations = validator.validate(detectionReq);
+        assertTrue(violations.isEmpty(), "Expected no validation violations for valid DetectionReq with large amount");
     }
 }

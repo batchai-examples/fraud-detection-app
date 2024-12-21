@@ -1,74 +1,126 @@
-/*
- * fraud-detection-app - fraud detection app
- * Copyright © 2024 Yiting Qiang (qiangyt@wxcount.com)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 package qiangyt.fraud_detection.framework.aws.sqs;
-
-import static org.junit.jupiter.api.Assertions.assertEquals; // Added import for assertEquals
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import qiangyt.fraud_detection.framework.aws.AwsProps;
 import software.amazon.awssdk.regions.Region;
 import software.amazon.awssdk.services.sqs.SqsClient;
 
-/** Unit tests for {@link SqsConfig}. */
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
+
+/**
+ * Test class for SqsConfig.
+ */
 public class SqsConfigTest {
 
-    private AwsProps awsProps;
+    @InjectMocks
     private SqsConfig sqsConfig;
 
-    /** Sets up the test environment before each test. */
+    @Mock
+    private AwsProps props;
+
     @BeforeEach
     public void setUp() {
-        // Mocking AwsProps
-        awsProps = Mockito.mock(AwsProps.class);
-        when(awsProps.getRegion()).thenReturn("us-west-2");
-        when(awsProps.getAccessKeyId()).thenReturn("testAccessKeyId");
-        when(awsProps.getAccessKeySecret()).thenReturn("testAccessKeySecret");
-
-        // Initializing SqsConfig with mocked AwsProps
-        sqsConfig = new SqsConfig();
-        sqsConfig.setProps(awsProps);
+        MockitoAnnotations.openMocks(this);
     }
 
-    /** Tests the {@link SqsConfig#getRegion()} method. */
+    /**
+     * Test case for happy path: retrieving the AWS region.
+     */
     @Test
-    public void testGetRegion() {
-        // Retrieve the region from SqsConfig
+    public void testGetRegion_HappyPath() {
+        // Arrange
+        String expectedRegion = "us-west-2";
+        when(props.getRegion()).thenReturn(expectedRegion);
+
+        // Act
         Region region = sqsConfig.getRegion();
 
-        // Assert that the region is not null and matches the expected value
-        assertNotNull(region);
-        assertEquals("us-west-2", region.id()); // Changed to assertEquals
+        // Assert
+        assertEquals(expectedRegion, region.id());
     }
 
-    /** Tests the {@link SqsConfig#createClient(Region)} method. */
+    /**
+     * Test case for creating SQS client with valid credentials.
+     */
     @Test
-    public void testCreateClient() {
-        // Retrieve the region from SqsConfig
+    public void testCreateClient_ValidCredentials() {
+        // Arrange
+        String accessKeyId = "validAccessKeyId";
+        String accessKeySecret = "validAccessKeySecret";
+        String regionId = "us-west-2";
+
+        when(props.getAccessKeyId()).thenReturn(accessKeyId);
+        when(props.getAccessKeySecret()).thenReturn(accessKeySecret);
+        when(props.getRegion()).thenReturn(regionId);
+
         Region region = sqsConfig.getRegion();
 
-        // Create an SqsClient using the retrieved region
-        SqsClient sqsClient = sqsConfig.createClient(region);
+        // Act
+        SqsClient client = sqsConfig.createClient(region);
 
-        // Assert that the SqsClient is not null
-        assertNotNull(sqsClient);
+        // Assert
+        assertNotNull(client);
+        assertEquals(regionId, client.serviceConfiguration().region().id());
+    }
+
+    /**
+     * Test case for creating SQS client with missing access key ID.
+     */
+    @Test
+    public void testCreateClient_MissingAccessKeyId() {
+        // Arrange
+        when(props.getAccessKeyId()).thenReturn(null);
+        when(props.getAccessKeySecret()).thenReturn("validAccessKeySecret");
+
+        Region region = sqsConfig.getRegion();
+
+        // Act & Assert
+        Exception exception = assertThrows(NullPointerException.class, () -> {
+            sqsConfig.createClient(region);
+        });
+        assertEquals("Access key ID cannot be null", exception.getMessage());
+    }
+
+    /**
+     * Test case for creating SQS client with missing access key secret.
+     */
+    @Test
+    public void testCreateClient_MissingAccessKeySecret() {
+        // Arrange
+        when(props.getAccessKeyId()).thenReturn("validAccessKeyId");
+        when(props.getAccessKeySecret()).thenReturn(null);
+
+        Region region = sqsConfig.getRegion();
+
+        // Act & Assert
+        Exception exception = assertThrows(NullPointerException.class, () -> {
+            sqsConfig.createClient(region);
+        });
+        assertEquals("Access key secret cannot be null", exception.getMessage());
+    }
+
+    /**
+     * Test case for creating SQS client with invalid region.
+     */
+    @Test
+    public void testCreateClient_InvalidRegion() {
+        // Arrange
+        when(props.getAccessKeyId()).thenReturn("validAccessKeyId");
+        when(props.getAccessKeySecret()).thenReturn("validAccessKeySecret");
+        when(props.getRegion()).thenReturn("invalid-region");
+
+        // Act
+        Region region = sqsConfig.getRegion();
+
+        // Assert
+        Exception exception = assertThrows(IllegalArgumentException.class, () -> {
+            sqsConfig.createClient(region);
+        });
+        assertEquals("Invalid region: invalid-region", exception.getMessage());
     }
 }

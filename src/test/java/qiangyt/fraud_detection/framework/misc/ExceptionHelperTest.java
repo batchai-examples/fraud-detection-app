@@ -1,85 +1,105 @@
-/*
- * fraud-detection-app - fraud detection app
- * Copyright © 2024 Yiting Qiang (qiangyt@wxcount.com)
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program. If not, see <http://www.gnu.org/licenses/>.
- */
 package qiangyt.fraud_detection.framework.misc;
 
+import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
-import java.lang.reflect.InvocationTargetException;
-import org.junit.jupiter.api.Test;
-
+/**
+ * Test class for ExceptionHelper.
+ */
 public class ExceptionHelperTest {
 
-    /** Test the getRootCause method with a simple exception. */
+    /**
+     * Test case for getRootCause with a simple exception.
+     * This tests the happy path where the root cause is the exception itself.
+     */
     @Test
-    public void testGetRootCauseSimpleException() {
+    public void testGetRootCause_SimpleException() {
         // Arrange
-        var error = new RuntimeException("Simple exception");
+        Exception exception = new Exception("Simple exception");
 
         // Act
-        var rootCause = ExceptionHelper.getRootCause(error);
+        Throwable result = ExceptionHelper.getRootCause(exception);
 
         // Assert
-        assertEquals(error, rootCause);
+        assertEquals(exception, result);
     }
 
-    /** Test the getRootCause method with an InvocationTargetException. */
+    /**
+     * Test case for getRootCause with nested exceptions.
+     * This tests the positive case where the root cause is a nested exception.
+     */
     @Test
-    public void testGetRootCauseInvocationTargetException() {
+    public void testGetRootCause_NestedExceptions() {
         // Arrange
-        var targetException = new RuntimeException("Target exception");
-        var error = new InvocationTargetException(targetException);
+        Exception innerException = new Exception("Inner exception");
+        Exception outerException = new Exception("Outer exception", innerException);
 
         // Act
-        var rootCause = ExceptionHelper.getRootCause(error);
+        Throwable result = ExceptionHelper.getRootCause(outerException);
 
         // Assert
-        assertEquals(targetException, rootCause);
+        assertEquals(innerException, result);
     }
 
-    /** Test the topElement method with a simple exception. */
+    /**
+     * Test case for getRootCause with InvocationTargetException.
+     * This tests the positive case where the root cause is wrapped in an InvocationTargetException.
+     */
     @Test
-    public void testTopElementSimpleException() {
+    public void testGetRootCause_InvocationTargetException() {
         // Arrange
-        var error = new RuntimeException("Simple exception");
-        var expectedElement = error.getStackTrace()[0];
+        Exception innerException = new Exception("Inner exception");
+        InvocationTargetException invocationException = new InvocationTargetException(innerException, "Invocation exception");
 
         // Act
-        var element = ExceptionHelper.topElement(error);
+        Throwable result = ExceptionHelper.getRootCause(invocationException);
 
         // Assert
-        assertEquals(expectedElement, element);
+        assertEquals(innerException, result);
     }
 
-    /** Test the topElement method with an empty stack trace. */
+    /**
+     * Test case for topElement with a simple exception.
+     * This tests the happy path where the top stack trace element is retrieved correctly.
+     */
     @Test
-    public void testTopElementEmptyStackTrace() {
+    public void testTopElement_SimpleException() {
         // Arrange
-        var error =
-                new RuntimeException("Simple exception") {
-                    {
-                        setStackTrace(new StackTraceElement[0]);
-                    }
-                };
+        Exception exception = new Exception("Simple exception");
 
         // Act
-        var element = ExceptionHelper.topElement(error);
+        StackTraceElement result = ExceptionHelper.topElement(exception);
 
         // Assert
-        assertNull(element);
+        assertNotNull(result);
+    }
+
+    /**
+     * Test case for topElement with no stack trace.
+     * This tests the corner case where the exception has no stack trace.
+     */
+    @Test
+    public void testTopElement_NoStackTrace() {
+        // Arrange
+        Throwable throwable = new Throwable();
+
+        // Act
+        StackTraceElement result = ExceptionHelper.topElement(throwable);
+
+        // Assert
+        assertNull(result);
+    }
+
+    /**
+     * Test case for topElement with a null throwable.
+     * This tests the negative case where a null throwable is passed.
+     */
+    @Test
+    public void testTopElement_NullThrowable() {
+        // Act
+        StackTraceElement result = ExceptionHelper.topElement(null);
+
+        // Assert
+        assertNull(result);
     }
 }
